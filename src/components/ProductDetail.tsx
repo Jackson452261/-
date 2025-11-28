@@ -1,299 +1,204 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Star, Check, Heart, Share2, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, Star, Check, Heart, Share2, ShoppingCart, Loader2 } from 'lucide-react';
+import { client, productDetailQuery, urlFor, SanityProduct } from '../lib/sanity';
+
+interface ProductData {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  originalPrice?: number;
+  images: string[];
+  rating: number;
+  reviews: number;
+  description: string;
+  features: string[];
+  specifications: Record<string, string>;
+  sizes: string[];
+  colors: string[];
+  isBestseller?: boolean;
+  isNew?: boolean;
+}
+
+// Fallback products for when Sanity is unavailable
+const fallbackProducts: ProductData[] = [
+  {
+    id: '1',
+    name: 'Velocity Pro Carbon',
+    category: 'Road Racing',
+    price: 4999,
+    originalPrice: 5499,
+    images: [
+      'https://images.unsplash.com/photo-1456990493443-0d0ee2a630cc?w=600&auto=format&fit=crop&q=60',
+      'https://images.unsplash.com/photo-1668763144355-cf09becd5b32?w=600&auto=format&fit=crop&q=60'
+    ],
+    rating: 4.9,
+    reviews: 127,
+    description: 'The Velocity Pro Carbon represents the pinnacle of road racing technology.',
+    features: ['High-modulus carbon fiber frame', 'Shimano Ultegra Di2 electronic shifting', 'Carbon aero wheelset'],
+    specifications: {
+      'Frame Material': 'High-Modulus Carbon Fiber',
+      'Weight': '6.8 kg (14.9 lbs)',
+      'Drivetrain': 'Shimano Ultegra Di2 22-Speed',
+      'Brakes': 'Hydraulic Disc Brakes'
+    },
+    sizes: ['XS', 'S', 'M', 'L', 'XL'],
+    colors: ['Matte Black', 'Racing Red', 'Pearl White'],
+    isBestseller: true
+  },
+  {
+    id: '2',
+    name: 'Aero Elite TT',
+    category: 'Time Trial',
+    price: 6299,
+    images: [
+      'https://plus.unsplash.com/premium_photo-1682125270920-39b89bb20867?w=600&auto=format&fit=crop&q=60',
+      'https://plus.unsplash.com/premium_photo-1753738125825-af6565b70309?w=600&auto=format&fit=crop&q=60'
+    ],
+    rating: 4.8,
+    reviews: 89,
+    description: 'Designed for time trial specialists and triathletes.',
+    features: ['Aerodynamic frame design', 'Integrated cockpit system', 'Disc brake compatibility'],
+    specifications: {
+      'Frame Material': 'Aero Carbon Fiber',
+      'Weight': '7.2 kg (15.9 lbs)',
+      'Drivetrain': 'Shimano Dura-Ace Di2',
+      'Brakes': 'Hydraulic Disc Brakes'
+    },
+    sizes: ['S', 'M', 'L', 'XL'],
+    colors: ['Stealth Black', 'Electric Blue'],
+    isNew: true
+  },
+  {
+    id: '3',
+    name: 'Endurance Comfort',
+    category: 'Mountain',
+    price: 3299,
+    images: [
+      'https://images.unsplash.com/photo-1534150034764-046bf225d3fa?w=600&auto=format&fit=crop&q=60',
+      'https://images.unsplash.com/photo-1515412512744-6e4adc8b5e55?w=600&auto=format&fit=crop&q=60'
+    ],
+    rating: 4.7,
+    reviews: 203,
+    description: 'Built for comfort on long mountain rides.',
+    features: ['Comfort geometry', 'Vibration damping', '32mm tire clearance'],
+    specifications: {
+      'Frame Material': 'Aluminum Alloy',
+      'Weight': '8.5 kg',
+      'Drivetrain': 'Shimano 105',
+      'Brakes': 'Hydraulic Disc Brakes'
+    },
+    sizes: ['S', 'M', 'L', 'XL'],
+    colors: ['Forest Green', 'Midnight Blue']
+  },
+  {
+    id: '4',
+    name: 'Sprint Master',
+    category: 'Gravel',
+    price: 5799,
+    images: [
+      'https://images.unsplash.com/photo-1578949678951-d4d4d390f582?w=600&auto=format&fit=crop&q=60',
+      'https://plus.unsplash.com/premium_photo-1670002395973-fc53c2b92a88?w=600&auto=format&fit=crop&q=60'
+    ],
+    rating: 4.9,
+    reviews: 156,
+    description: 'Versatile gravel bike for all terrains.',
+    features: ['Lightweight carbon', 'Aggressive geometry', 'Electronic shifting'],
+    specifications: {
+      'Frame Material': 'Carbon Fiber',
+      'Weight': '7.8 kg',
+      'Drivetrain': 'SRAM Force eTap',
+      'Brakes': 'Hydraulic Disc Brakes'
+    },
+    sizes: ['XS', 'S', 'M', 'L', 'XL'],
+    colors: ['Sand', 'Olive Green']
+  }
+];
 
 const ProductDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [product, setProduct] = useState<ProductData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState(0);
+  const [selectedSize, setSelectedSize] = useState('');
+  const [selectedColor, setSelectedColor] = useState('');
 
-  // Product data (in a real app, this would come from an API)
-  const products = [
-    {
-      id: '1',
-      name: 'Road bike one',
-      category: 'Road Racing',
-      price: 4999,
-      originalPrice: 5499,
-      images: [
-        'https://images.unsplash.com/photo-1456990493443-0d0ee2a630cc?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NjB8fHJvYWQlMjBiaWtlfGVufDB8fDB8fHww',
-        'https://images.unsplash.com/photo-1668763144355-cf09becd5b32?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTA0fHxyb2FkJTIwYmlrZXxlbnwwfHwwfHx8MA%3D%3D',
-         
-      ],
-      rating: 4.9,
-      reviews: 127,
-      description: 'The Velocity Pro Carbon represents the pinnacle of road racing technology. Engineered for professional cyclists who demand nothing but the best, this bike combines ultra-lightweight carbon fiber construction with aerodynamic excellence.',
-      features: [
-        'High-modulus carbon fiber frame',
-        'Shimano Ultegra Di2 electronic shifting',
-        'Carbon aero wheelset with ceramic bearings',
-        'Integrated cable routing',
-        'Aerodynamic tube shapes',
-        'Professional racing geometry'
-      ],
-      specifications: {
-        'Frame Material': 'High-Modulus Carbon Fiber',
-        'Weight': '6.8 kg (14.9 lbs)',
-        'Drivetrain': 'Shimano Ultegra Di2 22-Speed',
-        'Brakes': 'Hydraulic Disc Brakes',
-        'Wheels': 'Carbon Aero Wheelset',
-        'Tires': 'Continental GP5000 25mm',
-        'Handlebars': 'Integrated Carbon Aero Bars',
-        'Saddle': 'Ergonomic Performance Saddle'
-      },
-      sizes: ['XS', 'S', 'M', 'L', 'XL'],
-      colors: ['Matte Black', 'Racing Red', 'Pearl White'],
-      isBestseller: true
-    },
-    {
-      id: '2',
-      name: 'Aero Elite TT',
-      category: 'Time Trial',
-      price: 6299,
-      images: [
-        'https://plus.unsplash.com/premium_photo-1682125270920-39b89bb20867?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8VGltZSUyMFRyaWFsJTIwYmlrZXxlbnwwfHwwfHx8MA%3D%3D',
-        'https://plus.unsplash.com/premium_photo-1753738125825-af6565b70309?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OXx8VGltZSUyMFRyaWFsJTIwYmlrZXxlbnwwfHwwfHx8MA%3D%3D'
-      ],
-      rating: 4.8,
-      reviews: 89,
-      description: 'Designed for time trial specialists and triathletes, the Aero Elite TT maximizes aerodynamic efficiency while maintaining comfort for long-distance events.',
-      features: [
-        'Aerodynamic frame design',
-        'Integrated cockpit system',
-        'Disc brake compatibility',
-        'Internal cable routing',
-        'Time trial geometry',
-        'Wind tunnel tested'
-      ],
-      specifications: {
-        'Frame Material': 'Aero Carbon Fiber',
-        'Weight': '7.2 kg (15.9 lbs)',
-        'Drivetrain': 'Shimano Dura-Ace Di2',
-        'Brakes': 'Hydraulic Disc Brakes',
-        'Wheels': 'Deep Section Carbon',
-        'Tires': 'Continental GP TT 23mm',
-        'Handlebars': 'Integrated Aero Cockpit',
-        'Saddle': 'Time Trial Specific'
-      },
-      sizes: ['S', 'M', 'L', 'XL'],
-      colors: ['Stealth Black', 'Electric Blue'],
-      isNew: true
-    },
-    // Add more products as needed
-    {
-      id: '3',
-      name: 'Aero Elite TT',
-      category: 'Time Trial',
-      price: 6299,
-      images: [
-        'https://images.unsplash.com/photo-1534150034764-046bf225d3fa?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8N3x8TU9VTlRBSU4lMjBCSUtFfGVufDB8fDB8fHww',
-        'https://images.unsplash.com/photo-1515412512744-6e4adc8b5e55?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fE1PVU5UQUlOJTIwQklLRXxlbnwwfHwwfHx8MA%3D%3D'
-      ],
-      rating: 4.8,
-      reviews: 89,
-      description: 'Designed for time trial specialists and triathletes, the Aero Elite TT maximizes aerodynamic efficiency while maintaining comfort for long-distance events.',
-      features: [
-        'Aerodynamic frame design',
-        'Integrated cockpit system',
-        'Disc brake compatibility',
-        'Internal cable routing',
-        'Time trial geometry',
-        'Wind tunnel tested'
-      ],
-      specifications: {
-        'Frame Material': 'Aero Carbon Fiber',
-        'Weight': '7.2 kg (15.9 lbs)',
-        'Drivetrain': 'Shimano Dura-Ace Di2',
-        'Brakes': 'Hydraulic Disc Brakes',
-        'Wheels': 'Deep Section Carbon',
-        'Tires': 'Continental GP TT 23mm',
-        'Handlebars': 'Integrated Aero Cockpit',
-        'Saddle': 'Time Trial Specific'
-      },
-      sizes: ['S', 'M', 'L', 'XL'],
-      colors: ['Stealth Black', 'Electric Blue'],
-      isNew: true
-    },
-    // Add more products as needed
-    {
-      id: '4',
-      name: 'Aero Elite TT',
-      category: 'Gravel',
-      price: 6299,
-      images: [
-        'https://images.unsplash.com/photo-1578949678951-d4d4d390f582?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTl8fGdyYXZlbCUyMGJpa2V8ZW58MHx8MHx8fDA%3D',
-        'https://plus.unsplash.com/premium_photo-1670002395973-fc53c2b92a88?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTN8fGdyYXZlbCUyMGJpa2V8ZW58MHx8MHx8fDA%3D'
-      ],
-      rating: 4.8,
-      reviews: 89,
-      description: 'Designed for time trial specialists and triathletes, the Aero Elite TT maximizes aerodynamic efficiency while maintaining comfort for long-distance events.',
-      features: [
-        'Aerodynamic frame design',
-        'Integrated cockpit system',
-        'Disc brake compatibility',
-        'Internal cable routing',
-        'Time trial geometry',
-        'Wind tunnel tested'
-      ],
-      specifications: {
-        'Frame Material': 'Aero Carbon Fiber',
-        'Weight': '7.2 kg (15.9 lbs)',
-        'Drivetrain': 'Shimano Dura-Ace Di2',
-        'Brakes': 'Hydraulic Disc Brakes',
-        'Wheels': 'Deep Section Carbon',
-        'Tires': 'Continental GP TT 23mm',
-        'Handlebars': 'Integrated Aero Cockpit',
-        'Saddle': 'Time Trial Specific'
-      },
-      sizes: ['S', 'M', 'L', 'XL'],
-      colors: ['Stealth Black', 'Electric Blue'],
-      isNew: true
-    },
-    // Add more products as needed
-    {
-      id: '5',
-      name: 'Aero Elite TT',
-      category: 'Time Trial',
-      price: 6299,
-      images: [
-        'https://images.pexels.com/photos/544966/pexels-photo-544966.jpeg?auto=compress&cs=tinysrgb&w=1200&h=800&fit=crop',
-        'https://images.pexels.com/photos/100582/pexels-photo-100582.jpeg?auto=compress&cs=tinysrgb&w=1200&h=800&fit=crop'
-      ],
-      rating: 4.8,
-      reviews: 89,
-      description: 'Designed for time trial specialists and triathletes, the Aero Elite TT maximizes aerodynamic efficiency while maintaining comfort for long-distance events.',
-      features: [
-        'Aerodynamic frame design',
-        'Integrated cockpit system',
-        'Disc brake compatibility',
-        'Internal cable routing',
-        'Time trial geometry',
-        'Wind tunnel tested'
-      ],
-      specifications: {
-        'Frame Material': 'Aero Carbon Fiber',
-        'Weight': '7.2 kg (15.9 lbs)',
-        'Drivetrain': 'Shimano Dura-Ace Di2',
-        'Brakes': 'Hydraulic Disc Brakes',
-        'Wheels': 'Deep Section Carbon',
-        'Tires': 'Continental GP TT 23mm',
-        'Handlebars': 'Integrated Aero Cockpit',
-        'Saddle': 'Time Trial Specific'
-      },
-      sizes: ['S', 'M', 'L', 'XL'],
-      colors: ['Stealth Black', 'Electric Blue'],
-      isNew: true
-    },
-    // Add more products as needed
-    {
-      id: '6',
-      name: 'Aero Elite TT',
-      category: 'Time Trial',
-      price: 6299,
-      images: [
-        'https://images.pexels.com/photos/544966/pexels-photo-544966.jpeg?auto=compress&cs=tinysrgb&w=1200&h=800&fit=crop',
-        'https://images.pexels.com/photos/100582/pexels-photo-100582.jpeg?auto=compress&cs=tinysrgb&w=1200&h=800&fit=crop'
-      ],
-      rating: 4.8,
-      reviews: 89,
-      description: 'Designed for time trial specialists and triathletes, the Aero Elite TT maximizes aerodynamic efficiency while maintaining comfort for long-distance events.',
-      features: [
-        'Aerodynamic frame design',
-        'Integrated cockpit system',
-        'Disc brake compatibility',
-        'Internal cable routing',
-        'Time trial geometry',
-        'Wind tunnel tested'
-      ],
-      specifications: {
-        'Frame Material': 'Aero Carbon Fiber',
-        'Weight': '7.2 kg (15.9 lbs)',
-        'Drivetrain': 'Shimano Dura-Ace Di2',
-        'Brakes': 'Hydraulic Disc Brakes',
-        'Wheels': 'Deep Section Carbon',
-        'Tires': 'Continental GP TT 23mm',
-        'Handlebars': 'Integrated Aero Cockpit',
-        'Saddle': 'Time Trial Specific'
-      },
-      sizes: ['S', 'M', 'L', 'XL'],
-      colors: ['Stealth Black', 'Electric Blue'],
-      isNew: true
-    },
-    // Add more products as needed
-    {
-      id: '7',
-      name: 'Aero Elite TT',
-      category: 'Time Trial',
-      price: 6299,
-      images: [
-        'https://images.pexels.com/photos/544966/pexels-photo-544966.jpeg?auto=compress&cs=tinysrgb&w=1200&h=800&fit=crop',
-        'https://images.pexels.com/photos/100582/pexels-photo-100582.jpeg?auto=compress&cs=tinysrgb&w=1200&h=800&fit=crop'
-      ],
-      rating: 4.8,
-      reviews: 89,
-      description: 'Designed for time trial specialists and triathletes, the Aero Elite TT maximizes aerodynamic efficiency while maintaining comfort for long-distance events.',
-      features: [
-        'Aerodynamic frame design',
-        'Integrated cockpit system',
-        'Disc brake compatibility',
-        'Internal cable routing',
-        'Time trial geometry',
-        'Wind tunnel tested'
-      ],
-      specifications: {
-        'Frame Material': 'Aero Carbon Fiber',
-        'Weight': '7.2 kg (15.9 lbs)',
-        'Drivetrain': 'Shimano Dura-Ace Di2',
-        'Brakes': 'Hydraulic Disc Brakes',
-        'Wheels': 'Deep Section Carbon',
-        'Tires': 'Continental GP TT 23mm',
-        'Handlebars': 'Integrated Aero Cockpit',
-        'Saddle': 'Time Trial Specific'
-      },
-      sizes: ['S', 'M', 'L', 'XL'],
-      colors: ['Stealth Black', 'Electric Blue'],
-      isNew: true
-    },
-    // Add more products as needed
-    {
-      id: '2',
-      name: 'Aero Elite TT',
-      category: 'Time Trial',
-      price: 6299,
-      images: [
-        'https://images.pexels.com/photos/544966/pexels-photo-544966.jpeg?auto=compress&cs=tinysrgb&w=1200&h=800&fit=crop',
-        'https://images.pexels.com/photos/100582/pexels-photo-100582.jpeg?auto=compress&cs=tinysrgb&w=1200&h=800&fit=crop'
-      ],
-      rating: 4.8,
-      reviews: 89,
-      description: 'Designed for time trial specialists and triathletes, the Aero Elite TT maximizes aerodynamic efficiency while maintaining comfort for long-distance events.',
-      features: [
-        'Aerodynamic frame design',
-        'Integrated cockpit system',
-        'Disc brake compatibility',
-        'Internal cable routing',
-        'Time trial geometry',
-        'Wind tunnel tested'
-      ],
-      specifications: {
-        'Frame Material': 'Aero Carbon Fiber',
-        'Weight': '7.2 kg (15.9 lbs)',
-        'Drivetrain': 'Shimano Dura-Ace Di2',
-        'Brakes': 'Hydraulic Disc Brakes',
-        'Wheels': 'Deep Section Carbon',
-        'Tires': 'Continental GP TT 23mm',
-        'Handlebars': 'Integrated Aero Cockpit',
-        'Saddle': 'Time Trial Specific'
-      },
-      sizes: ['S', 'M', 'L', 'XL'],
-      colors: ['Stealth Black', 'Electric Blue'],
-      isNew: true
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const sanityProduct: SanityProduct = await client.fetch(productDetailQuery, { id });
+        
+        if (sanityProduct) {
+          // Build images array from Sanity
+          const imageUrls: string[] = [];
+          if (sanityProduct.image) {
+            imageUrls.push(urlFor(sanityProduct.image).width(800).url());
+          }
+          if (sanityProduct.images) {
+            sanityProduct.images.forEach((img) => {
+              imageUrls.push(urlFor(img).width(800).url());
+            });
+          }
+
+          // Map specifications from Sanity format
+          const specs: Record<string, string> = {};
+          if (sanityProduct.specifications) {
+            if (sanityProduct.specifications.frameMaterial) specs['Frame Material'] = sanityProduct.specifications.frameMaterial;
+            if (sanityProduct.specifications.weight) specs['Weight'] = sanityProduct.specifications.weight;
+            if (sanityProduct.specifications.drivetrain) specs['Drivetrain'] = sanityProduct.specifications.drivetrain;
+            if (sanityProduct.specifications.brakes) specs['Brakes'] = sanityProduct.specifications.brakes;
+            if (sanityProduct.specifications.wheels) specs['Wheels'] = sanityProduct.specifications.wheels;
+            if (sanityProduct.specifications.tires) specs['Tires'] = sanityProduct.specifications.tires;
+            if (sanityProduct.specifications.handlebars) specs['Handlebars'] = sanityProduct.specifications.handlebars;
+            if (sanityProduct.specifications.saddle) specs['Saddle'] = sanityProduct.specifications.saddle;
+          }
+
+          setProduct({
+            id: sanityProduct._id,
+            name: sanityProduct.name,
+            category: sanityProduct.category,
+            price: sanityProduct.price,
+            originalPrice: sanityProduct.originalPrice,
+            images: imageUrls.length > 0 ? imageUrls : ['https://via.placeholder.com/800'],
+            rating: sanityProduct.rating || 0,
+            reviews: sanityProduct.reviews || 0,
+            description: sanityProduct.description || '',
+            features: sanityProduct.features || [],
+            specifications: specs,
+            sizes: sanityProduct.sizes || ['S', 'M', 'L', 'XL'],
+            colors: sanityProduct.colors || ['Black', 'White'],
+            isBestseller: sanityProduct.isBestseller,
+            isNew: sanityProduct.isNew,
+          });
+        } else {
+          // Fallback to local data
+          const fallback = fallbackProducts.find(p => p.id === id);
+          setProduct(fallback || null);
+        }
+      } catch (error) {
+        console.error('Error fetching product from Sanity:', error);
+        // Fallback to local data
+        const fallback = fallbackProducts.find(p => p.id === id);
+        setProduct(fallback || null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchProduct();
     }
-  ];
+  }, [id]);
 
-  const product = products.find(p => p.id === id);
-  const [selectedImage, setSelectedImage] = React.useState(0);
-  const [selectedSize, setSelectedSize] = React.useState('');
-  const [selectedColor, setSelectedColor] = React.useState('');
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-12 h-12 animate-spin text-red-600" />
+      </div>
+    );
+  }
 
   if (!product) {
     return (
