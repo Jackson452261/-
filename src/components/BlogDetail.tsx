@@ -11,6 +11,7 @@ interface BlogPost {
   readTime: string;
   category: string;
   image: string;
+  inlineImage: string;
   tags: string[];
 }
 
@@ -22,7 +23,8 @@ const blogData: { [key: string]: BlogPost } = {
     date: '2024-08-20',
     readTime: '8 min read',
     category: 'Maintenance',
-    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80',
+    image: 'https://images.pexels.com/photos/296848/pexels-photo-296848.jpeg?auto=compress&cs=tinysrgb&w=1200',
+    inlineImage: 'https://images.pexels.com/photos/296848/pexels-photo-296848.jpeg?auto=compress&cs=tinysrgb&w=1200',
     tags: ['Derailleur', 'Maintenance', 'Shifting', 'Repair'],
     content: `The derailleur system is the heart of modern bicycle shifting, allowing riders to seamlessly change gears for optimal performance across varying terrain. Whether you're climbing steep hills or sprinting on flat roads, understanding how your derailleur works is crucial for both performance and maintenance.
 
@@ -78,6 +80,7 @@ The front derailleur shifts the chain between chainrings (the large gears attach
     readTime: '12 min read',
     category: 'Performance',
     image: 'https://images.unsplash.com/photo-1571068316344-75bc76f77890?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80',
+    inlineImage: 'https://images.unsplash.com/photo-1541625602330-2277a4c46182?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
     tags: ['Bike Fit', 'Performance', 'Ergonomics', 'Comfort'],
     content: `Proper bike fit is the foundation of cycling performance, comfort, and injury prevention. A well-fitted bike not only makes you faster and more efficient but also ensures you can ride longer without discomfort or pain.
 
@@ -123,7 +126,8 @@ Seek professional help for persistent pain, performance plateaus, or new bike pu
     date: '2024-08-15',
     readTime: '6 min read',
     category: 'Gear Guide',
-    image: 'https://images.unsplash.com/photo-1544191696-15693072b5a8?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80',
+    image: 'https://images.pexels.com/photos/13415390/pexels-photo-13415390.jpeg?auto=compress&cs=tinysrgb&w=1200',
+    inlineImage: 'https://images.pexels.com/photos/13415388/pexels-photo-13415388.jpeg?auto=compress&cs=tinysrgb&w=600',
     tags: ['Frame Materials', 'Carbon Fiber', 'Aluminum', 'Bike Selection'],
     content: `When shopping for a new bike, choosing the frame material is crucial. Carbon fiber and aluminum dominate the modern cycling market, each offering distinct advantages.
 
@@ -171,6 +175,7 @@ Seek professional help for persistent pain, performance plateaus, or new bike pu
     readTime: '10 min read',
     category: 'Training',
     image: 'https://images.unsplash.com/photo-1517654443271-21d3b1c7e0c7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80',
+    inlineImage: 'https://images.unsplash.com/photo-1513593771513-7b58b6c4af38?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
     tags: ['Training', 'Heart Rate', 'Power Meter', 'Performance'],
     content: `Understanding training zones is fundamental to structured cycling training. Training zones help you target specific physiological adaptations and maximize training effectiveness.
 
@@ -225,6 +230,7 @@ Use field testing (20-minute time trial) or laboratory testing for heart rate. F
     readTime: '15 min read',
     category: 'Maintenance',
     image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80',
+    inlineImage: 'https://images.unsplash.com/photo-1519583272095-6433daf26b6e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
     tags: ['Tubeless', 'Tires', 'Maintenance', 'Setup'],
     content: `Tubeless tires offer improved puncture resistance, better traction, and lower rolling resistance. Here's your complete setup guide.
 
@@ -278,6 +284,7 @@ Use field testing (20-minute time trial) or laboratory testing for heart rate. F
     readTime: '9 min read',
     category: 'Nutrition',
     image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80',
+    inlineImage: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
     tags: ['Nutrition', 'Endurance', 'Fueling', 'Performance'],
     content: `Proper nutrition is crucial for long-distance cycling performance. Strategic fueling can make the difference between a successful ride and bonking halfway through.
 
@@ -406,10 +413,27 @@ const BlogDetail: React.FC = () => {
       {/* Article Content */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="prose prose-lg max-w-none">
-          {post.content.split('\n').map((paragraph, index) => {
+          {(() => {
+            let firstH2Rendered = false;
+            return post.content.split('\n').map((paragraph, index) => {
             if (paragraph.trim() === '') return null;
             
             if (paragraph.startsWith('## ')) {
+              if (!firstH2Rendered) {
+                firstH2Rendered = true;
+                return (
+                  <React.Fragment key={index}>
+                    <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">
+                      {paragraph.replace('## ', '')}
+                    </h2>
+                    <img
+                      src={post.inlineImage}
+                      alt={paragraph.replace('## ', '')}
+                      className="float-right ml-8 mb-6 w-1/2 h-72 object-cover rounded-lg shadow-md"
+                    />
+                  </React.Fragment>
+                );
+              }
               return (
                 <h2 key={index} className="text-2xl font-bold text-gray-900 mt-8 mb-4">
                   {paragraph.replace('## ', '')}
@@ -447,7 +471,8 @@ const BlogDetail: React.FC = () => {
                 {paragraph}
               </p>
             );
-          })}
+            });
+          })()}
         </div>
 
         {/* Tags */}

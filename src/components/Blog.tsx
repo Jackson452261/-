@@ -38,7 +38,7 @@ const blogPosts: BlogPost[] = [
     titleItalic: '',
     category: 'GEAR GUIDE',
     body: 'Frame material shapes every ride sensation. Carbon fibre layups can be engineered to be stiff where power transfer demands it and compliant where road vibration degrades comfort, all at a weight penalty measured in grams. Aluminium alloys offer exceptional stiffness-to-cost ratios, resist impact damage more predictably, and are straightforward to repair. The right choice depends on your budget, riding style, and how long you plan to keep the bike — not on marketing claims alone.',
-    image: 'https://images.unsplash.com/photo-1544191696-15693072b5a8?ixlib=rb-4.0.3&auto=format&fit=crop&w=900&q=80',
+    image: 'https://images.pexels.com/photos/13415390/pexels-photo-13415390.jpeg?auto=compress&cs=tinysrgb&w=900',
   },
 ];
 
