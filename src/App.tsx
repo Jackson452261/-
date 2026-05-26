@@ -27,6 +27,7 @@ function App() {
             <Service />
             <Features />
             <Products />
+            <Blog />
             <Specifications />
           </>
         } />
